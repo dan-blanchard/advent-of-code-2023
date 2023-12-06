@@ -2,6 +2,9 @@ import argparse
 import fileinput
 
 
+# Part 1
+
+
 def parse_almanac(lines, use_seed_ranges=False):
     seeds = set()
     mappings = {}
@@ -61,14 +64,61 @@ def find_lowest_seed_location(seeds, almanac):
     return min(location_for_seed(seed, almanac) for seed in seeds)
 
 
+# Part 2
+
+
+def apply_mapping(ranges, mapping):
+    new_ranges = set()
+
+    for src_start, length in sorted(ranges):
+        src_end = src_start + length
+        for (curr_start, curr_end), curr_delta in sorted(mapping.items()):
+            if curr_start >= src_end:
+                break
+            if curr_end <= src_start:
+                continue
+            overlap_start = max(src_start, curr_start)
+            overlap_end = min(src_end, curr_end)
+            if overlap_start >= overlap_end:
+                raise ValueError(
+                    f"Overlap start {overlap_start} >= overlap end {overlap_end}"
+                )
+            # pre-overlap
+            if src_start < curr_start:
+                new_ranges.add((src_start, curr_start - src_start))
+            # overlap
+            new_ranges.add((overlap_start + curr_delta, overlap_end - overlap_start))
+            src_start = overlap_end
+        if src_start > src_end:
+            raise ValueError(f"src_start {src_start} > src_end {src_end}")
+        if src_start < src_end:
+            new_ranges.add((src_start, src_end - src_start))
+    new_ranges = sorted(new_ranges)
+    return new_ranges
+
+
+def location_for_seed_ranges(seeds, almanac):
+    category = "seed"
+    ranges = seeds
+    while category != "location":
+        name, mapping = next(
+            (
+                (name, mapping)
+                for name, mapping in almanac.items()
+                if name.startswith(category)
+            ),
+            (None, None),
+        )
+        if name is None or mapping is None:
+            raise ValueError(f"Unknown category: {category}")
+        ranges = apply_mapping(ranges, mapping)
+        category = name.split("-")[-1]
+    return ranges
+
+
 def find_lowest_seed_location_ranges(seeds, almanac):
-    min_location = float("inf")
-    for seed_start, length in seeds:
-        for seed in range(seed_start, seed_start + length):
-            location = location_for_seed(seed, almanac)
-            if location < min_location:
-                min_location = location
-    return min_location
+    locations = location_for_seed_ranges(seeds, almanac)
+    return min(locations)[0]
 
 
 def main():
