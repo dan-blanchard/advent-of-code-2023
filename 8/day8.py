@@ -1,6 +1,7 @@
 import argparse
 import fileinput
 import itertools
+import math
 
 
 direction_indices = {"L": 0, "R": 1}
@@ -29,18 +30,17 @@ def traverse_network(directions, network, start="AAA", end="ZZZ"):
 def multi_traverse_network(directions, network):
     """Returns the path length of a multi-traversal of the network"""
     curr_nodes = tuple(node for node in network if node.endswith("A"))
-    path_length = 0
-    print("Original start nodes: ", curr_nodes)
-    for direction in itertools.cycle(directions):
-        dir_idx = direction_indices[direction]
-        curr_nodes = tuple(network[node][dir_idx] for node in curr_nodes)
-        path_length += 1
-        if path_length % 1000000 == 0:
-            print(f"Path length: {path_length}")
-            print(f"Current nodes: {curr_nodes}")
-        if all(node.endswith("Z") for node in curr_nodes):
-            break
-    return path_length
+    path_lengths = []
+    for node in curr_nodes:
+        path_length = 0
+        for direction in itertools.cycle(directions):
+            dir_idx = direction_indices[direction]
+            node = network[node][dir_idx]
+            path_length += 1
+            if node.endswith("Z"):
+                path_lengths.append(path_length)
+                break
+    return math.lcm(*path_lengths)
 
 
 def main():
